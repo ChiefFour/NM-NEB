@@ -1,0 +1,29 @@
+# Compiled objects
+*.o
+*.mod
+a.out
+
+# Gaussian 16 input/output files
+*.log
+*.fchk
+*.chk
+single_point.gjf
+
+# DL-FIND / NEB runtime files
+neb_*.xyz
+path*.xyz
+nebpath.xyz
+fort.*
+output
+storedEG
+nebinfo
+coor-z
+gs
+mode_reactant
+mode_product
+omega_r
+omega_p
+
+# z-interplot intermediate data
+*.dat
+!examples/z-interplot/*.dat

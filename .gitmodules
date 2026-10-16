@@ -1,0 +1,3 @@
+[submodule "third_party/libdlfind"]
+	path = third_party/libdlfind
+	url = https://github.com/digital-chemistry-laboratory/libdlfind.git

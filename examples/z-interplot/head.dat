@@ -1,0 +1,5 @@
+Atom Number
+5
+Keyword  (Gaussian)
+#p freq b3lyp/6-31g* em=GD3 nosymm
+
