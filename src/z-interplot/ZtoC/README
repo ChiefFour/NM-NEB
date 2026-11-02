@@ -1,0 +1,17 @@
+Example ethylene molecule input file:
+6
+0,0,0,1,0,0,1,2,0,1,3,2,4,1,3,4,1,3
+0,0,0,1.07,0,0,1.07,119.88652694,0,1.3552,119.88652694,180.00000000,1.07000000,120.22694612,-0.00000000,1.07000000,119.88652694,-180.00000000
+C,H,H,C,H,H
+
+Explain
+Total number of atoms in the system
+The connection of every atom(Bond,Angle,Dihedral Angle)
+The value of each relationship(Bond,Angle,Dihedral Angle)
+Atomic sequence of system
+
+
+When the input file is ready, run the program(./zmat_to_cart)
+
+!!!
+If you have any program modifications, run the command to generate the program(bash make)

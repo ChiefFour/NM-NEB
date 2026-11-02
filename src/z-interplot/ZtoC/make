@@ -1,0 +1,4 @@
+#!/bin/bash
+gfortran -c main.f90
+gfortran -c zmat_to_cart.f90
+gfortran -o zmat_to_cart main.o zmat_to_cart.o 

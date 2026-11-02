@@ -58,7 +58,8 @@ NM-NEB/
 │   │   └── mode-P.f90          #   P-side variant (TS guess built from P)
 │   └── z-interplot/            # Z-matrix internal-coordinate interpolation
 │       ├── z-matrix-interpolated.f90
-│       └── test.f90
+│       ├── test.f90
+│       └── ZtoC/               # zmat_to_cart: Z-matrix -> Cartesian converter
 ├── examples/                   # input templates for each component
 │   ├── nmneb/                  #   input / input-z (NEB driver)
 │   ├── lineb/                  #   input for linear-interpolation NEB runs
@@ -145,6 +146,10 @@ gfortran -O2 mode-P.f90 -o mode-P
 # Z-matrix interpolation
 cd src/z-interplot
 gfortran -O2 z-matrix-interpolated.f90 -o z-interplot
+
+# Z-matrix -> Cartesian conversion (used for internal-coordinate NEB runs)
+cd src/z-interplot/ZtoC
+gfortran -O2 main.f90 zmat_to_cart.f90 -o zmat_to_cart
 ```
 
 ## Usage
