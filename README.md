@@ -1,4 +1,4 @@
-# NM-NEB: Normal-Mode-based Elastic Band Method
+# NM-NEB: Normal-Mode-Based Nudged Band Method
 
 A normal-mode-guided nudged elastic band (NEB) implementation that retrieves
 potential energy surface (PES) curvature information from the local Hessians of
@@ -6,7 +6,7 @@ the reactant and product minima to construct physically reasonable initial
 paths and improve transition state (TS) search.
 
 **Reference:** S. Liang, Z. Zhou, Z. Qu, *J. Phys. Chem. A*, 2026.
-DOI: [to be added].
+DOI: 10.1021/acs.jpca.6c02928.
 
 ## Overview
 
@@ -76,7 +76,8 @@ NM-NEB/
 | Dependency | Purpose | Notes |
 |---|---|---|
 | **DL-FIND** | NEB/optimization kernel (`dl_find`) | Obtained as a git submodule from [libdlfind](https://github.com/digital-chemistry-laboratory/libdlfind) (contains the DL-FIND Fortran sources); see Installation |
-| **Gaussian 16** | energies and gradients (`g16`, `formchk`) | single_point() shells out to `g16` and parses `.fchk`/`.log` |
+| **BLAS / LAPACK** | linear-algebra backend required by the DL-FIND build | e.g. OpenBLAS; on Debian/Ubuntu: `sudo apt install libblas-dev liblapack-dev` |
+| **Gaussian 16** | energies and gradients (`g16`, `formchk`) | single_point() shells out to `g16` and parses `.fchk`/`.log`; both executables must be in `PATH` |
 | **gfortran** | Fortran compiler | any recent gfortran (GCC) works |
 
 The three auxiliary components (`mode-align`, `mode-displacement`,
@@ -98,7 +99,7 @@ The DL-FIND Fortran sources are then available under `third_party/libdlfind/`.
 ### 2. Build and install DL-FIND
 
 Build the DL-FIND shared library from the submodule and install it to a
-prefix of your choice:
+prefix of your choice. This requires a Fortran compiler and BLAS/LAPACK:
 
 ```shell
 cd third_party/libdlfind
@@ -111,6 +112,12 @@ cmake --install build
 > from the [ChemShell website](https://www.chemshell.org/dl-find) (after
 > registration) and install it in the usual way. Adjust the linker flags in
 > the next step to match your installation.
+>
+> **Callback interface:** the DL-FIND callback routines in `src/nmneb/func.f90`
+> (`dlf_get_params`, `dlf_get_gradient`) are matched to the API of the
+> `libdlfind` submodule (including the `kiter` argument of
+> `dlf_get_gradient`). If you link against a different DL-FIND distribution,
+> check that its callback signatures match yours.
 
 ### 3. Compile the NM-NEB driver
 
@@ -120,7 +127,7 @@ gfortran -O2 \
     main.f90 get_input.f90 fortran_dl_find.f90 \
     func.f90 subroutine.f90 molegeom_module.f90 \
     -o nmneb \
-    -L$HOME/.local/lib -ldl-find     # adjust to your DL-FIND installation
+    -L$HOME/.local/lib -ldlfind     # adjust to your DL-FIND installation
 ```
 
 ### 4. Compile the auxiliary components
@@ -216,8 +223,8 @@ in `examples/lineb/input`.
 
 If you use NM-NEB in your work, please cite:
 
-- **NM-NEB paper:** S. Liang, Z. Zhou, Z. Qu, *J. Phys. Chem. A*, 2026
-  (DOI to be added).
+- **NM-NEB paper:** S. Liang, Z. Zhou, Z. Qu, *J. Phys. Chem. A*, 2026.
+  DOI: 10.1021/acs.jpca.6c02928.
 - **DL-FIND:** J. Kästner, J. M. Carr, T. W. Keal, W. Thiel, A. Wander,
   P. Sherwood, *J. Phys. Chem. A*, 2009, **113**, 11856–11865.
 - **Gaussian 16:** M. J. Frisch et al., Gaussian 16, Revision C.01, Gaussian,

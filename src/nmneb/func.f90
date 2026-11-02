@@ -277,7 +277,7 @@ return
 end subroutine dlf_get_params
 
 
-subroutine dlf_get_gradient(nvar,coords,energy,gradient,iimage,status)
+subroutine dlf_get_gradient(nvar,coords,energy,gradient,iimage,kiter,status)
 ! get the gradient at a given geometry
 !  use dlf_parameter_module, only: rk
 !  use dlf_stat,only:stat   
@@ -294,6 +294,7 @@ subroutine dlf_get_gradient(nvar,coords,energy,gradient,iimage,status)
   real(rk)  ,intent(out)   :: energy
   real(rk)  ,intent(out)   :: gradient(nvar)
   integer   ,intent(in)    :: iimage
+  integer   ,intent(in)    :: kiter   ! iteration counter (unused here); part of the libdlfind callback API
   integer   ,intent(out)   :: status
   integer   ,save          :: call_counter
   integer                  :: initio_counter
