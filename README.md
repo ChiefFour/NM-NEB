@@ -66,6 +66,8 @@ NM-NEB/
 │   ├── mode-align/             #   reactant.com / product.com (Gaussian inputs)
 │   ├── mode-displacement/      #   reactant.com / product.com
 │   └── z-interplot/            #   info_connection, initio.dat, final.dat, ...
+├── build.sh / build.cmd        # one-shot build scripts (all executables)
+├── run.sh / run.cmd            # launchers with Gaussian environment check
 ├── docs/
 │   └── input-format.md         # full description of the "input" file
 └── third_party/
@@ -76,81 +78,116 @@ NM-NEB/
 
 | Dependency | Purpose | Notes |
 |---|---|---|
-| **DL-FIND** | NEB/optimization kernel (`dl_find`) | Obtained as a git submodule from [libdlfind](https://github.com/digital-chemistry-laboratory/libdlfind) (contains the DL-FIND Fortran sources); see Installation |
-| **BLAS / LAPACK** | linear-algebra backend required by the DL-FIND build | e.g. OpenBLAS; on Debian/Ubuntu: `sudo apt install libblas-dev liblapack-dev` |
-| **Gaussian 16** | energies and gradients (`g16`, `formchk`) | single_point() shells out to `g16` and parses `.fchk`/`.log`; both executables must be in `PATH` |
+| **DL-FIND** | NEB/optimization kernel (`dl_find`) | Sources ship as a git submodule ([libdlfind](https://github.com/digital-chemistry-laboratory/libdlfind)) and are compiled **directly into** the `nmneb` binary; **no separate DL-FIND installation is needed** |
+| **BLAS / LAPACK** | linear-algebra backend required by the DL-FIND kernel | e.g. OpenBLAS; on Debian/Ubuntu: `sudo apt install libblas-dev liblapack-dev` |
+| **Gaussian 16** | energies and gradients (`g16`, `formchk`) | **NOT bundled with this repository.** Each user must install and license Gaussian 16 themselves and make `g16` / `formchk` available (see [Environment requirements](#environment-requirements)) |
 | **gfortran** | Fortran compiler | any recent gfortran (GCC) works |
 
-The three auxiliary components (`mode-align`, `mode-displacement`,
-`z-interplot`) require **only** a Fortran compiler. Only `src/nmneb` links
-against DL-FIND.
+The auxiliary components (`mode-align`, `mode-displacement`,
+`z-interplot`, `zmat_to_cart`) require **only** a Fortran compiler.
+
+## Environment requirements
+
+NM-NEB is a method driver: it does not bundle, provide, or interface with any
+quantum chemistry package.
+
+**Gaussian 16 is strictly required at run time.** During the NEB optimization
+the driver calls `g16` for every image single point and `formchk` to read the
+gradient back from the checkpoint file. Without a working Gaussian 16
+installation the program starts but cannot perform any calculation. Gaussian
+16 is commercial software; it must be obtained, licensed and installed by
+each user.
+
+The driver locates the Gaussian executables in the following order:
+
+1. Environment variable `GAUSS_EXE` (path to the `g16` executable).
+2. Environment variable `FORMCHK_EXE` (path to the `formchk` executable).
+3. `g16` / `formchk` found in `PATH` (the default Gaussian setup).
+
+```bash
+# Linux / macOS
+export GAUSS_EXE=/opt/g16/g16
+export FORMCHK_EXE=/opt/g16/formchk
+```
+
+```bat
+rem Windows (cmd)
+set GAUSS_EXE=C:\Gaussian\g16\g16.exe
+set FORMCHK_EXE=C:\Gaussian\g16\formchk.exe
+```
+
+Paths containing spaces are handled automatically by the driver. The
+`run.sh` / `run.cmd` launchers perform the same detection and refuse to start
+when Gaussian is missing.
+
+**Platform support:** the code is plain Fortran 90 and compiles with gfortran
+on Linux, macOS and Windows (MinGW-w64). No pre-built binaries are provided;
+see Installation below.
 
 ## Installation
 
-### 1. Clone this repository with the DL-FIND submodule
+### 1. Clone this repository (with the DL-FIND submodule)
 
 ```shell
-git clone --recursive https://github.com/<your-account>/NM-NEB.git
+git clone --recursive https://github.com/ChiefFour/NM-NEB.git
 # or, if already cloned without --recursive:
 git submodule update --init --recursive
 ```
 
 The DL-FIND Fortran sources are then available under `third_party/libdlfind/`.
 
-### 2. Build and install DL-FIND
+### 2. One-shot build
 
-Build the DL-FIND shared library from the submodule and install it to a
-prefix of your choice. This requires a Fortran compiler and BLAS/LAPACK:
+The DL-FIND kernel sources are compiled **directly into** the `nmneb` binary,
+so no separate DL-FIND installation (cmake, shared library, or ChemShell
+registration) is needed. Only gfortran and BLAS/LAPACK are required.
+
+Linux / macOS / WSL:
 
 ```shell
-cd third_party/libdlfind
-cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/.local
-cmake --build build
-cmake --install build
+./build.sh
 ```
 
-> If you prefer, you may instead obtain the original DL-FIND distribution
-> from the [ChemShell website](https://www.chemshell.org/dl-find) (after
-> registration) and install it in the usual way. Adjust the linker flags in
-> the next step to match your installation.
+Windows (MinGW-w64 gfortran on `PATH`):
+
+```bat
+build.cmd
+```
+
+Each script builds all executables:
+
+| Executable | Location |
+|---|---|
+| `nmneb` | `src/nmneb/` |
+| `mode-align` | `src/mode-align/` |
+| `mode-R`, `mode-P` | `src/mode-displacement/` |
+| `z-interplot` | `src/z-interplot/` |
+| `zmat_to_cart` | `src/z-interplot/ZtoC/` |
+
+> **What gets compiled in:** `build.sh` / `build.cmd` compile `dl-find.f90`
+> plus the `dlf_*.f90` kernel modules from `third_party/libdlfind/src`. The
+> files `api.f90`, `main.f90`, `dlfind_crystal.f90`, `draw.f90`,
+> `mod_globals.f90` and `mod_api.f90` are the Python-binding /
+> standalone-entry files of the libdlfind repository and are intentionally
+> excluded, because they define their own `dlf_get_params` /
+> `dlf_get_gradient` / `dl_find` symbols. The DL-FIND callbacks in
+> `src/nmneb/func.f90` (including the `kiter` argument) are matched to the
+> compiled kernel.
 >
-> **Callback interface:** the DL-FIND callback routines in `src/nmneb/func.f90`
-> (`dlf_get_params`, `dlf_get_gradient`) are matched to the API of the
-> `libdlfind` submodule (including the `kiter` argument of
-> `dlf_get_gradient`). If you link against a different DL-FIND distribution,
-> check that its callback signatures match yours.
+> **Manual compilation:** if you prefer to compile by hand, do the same
+> steps directly: `cd src/nmneb`, compile the six NM-NEB sources together
+> with `$DLF/dl-find.f90` and `$DLF/dlf_*.f90`, then link with
+> `-lblas -llapack`. On Windows, add `-o nmneb.exe` and use MinGW-w64
+> gfortran; adjust the BLAS/LAPACK flags if you use OpenBLAS
+> (`-lopenblas`).
 
-### 3. Compile the NM-NEB driver
+### 3. Alternative: link against an existing DL-FIND installation
 
-```shell
-cd src/nmneb
-gfortran -O2 \
-    main.f90 get_input.f90 fortran_dl_find.f90 \
-    func.f90 subroutine.f90 molegeom_module.f90 \
-    -o nmneb \
-    -L$HOME/.local/lib -ldlfind     # adjust to your DL-FIND installation
-```
-
-### 4. Compile the auxiliary components
-
-```shell
-# mode matching
-cd src/mode-align
-gfortran -O2 main.f90 sub.f90 -o mode-align
-
-# endpoint displacement (run in the P/ and R/ working directories)
-cd src/mode-displacement
-gfortran -O2 mode-R.f90 -o mode-R
-gfortran -O2 mode-P.f90 -o mode-P
-
-# Z-matrix interpolation
-cd src/z-interplot
-gfortran -O2 z-matrix-interpolated.f90 -o z-interplot
-
-# Z-matrix -> Cartesian conversion (used for internal-coordinate NEB runs)
-cd src/z-interplot/ZtoC
-gfortran -O2 main.f90 zmat_to_cart.f90 -o zmat_to_cart
-```
+If you already have DL-FIND installed (e.g. the official distribution from
+the [ChemShell website](https://www.chemshell.org/dl-find)), you can compile
+`nmneb` against it instead of compiling the kernel in. In that case make sure
+the callback signatures in `src/nmneb/func.f90` (in particular the `kiter`
+argument of `dlf_get_gradient`) match your DL-FIND version.
 
 ## Usage
 
@@ -200,18 +237,24 @@ coefficients and write the displaced endpoint geometry used as NEB input.
 ### Step 4 — NEB optimization (`src/nmneb`)
 
 Write an `input` file (see `examples/nmneb/input`) containing the two endpoint
-geometries and the DL-FIND parameters, then run:
+geometries and the DL-FIND parameters, then run the launcher, which checks the
+Gaussian environment first and then starts the driver:
 
 ```shell
-./nmneb
+./run.sh          # Linux / macOS / WSL
 ```
 
-During the optimization, each image geometry is written to
-`single_point.gjf` and evaluated by Gaussian 16; energies and gradients are
-read back from the Gaussian output. The NEB trajectory is written to
-`neb_*.xyz`, and the optimized path is summarized in `nebinfo`. The linear
-interpolation (LI-NEB) variant uses the same binary with the input file shown
-in `examples/lineb/input`.
+```bat
+run.cmd           rem Windows
+```
+
+Equivalently, run the driver directly (`./nmneb` / `nmneb.exe`) once
+`g16` / `formchk` are configured. During the optimization, each image geometry
+is written to `single_point.gjf` and evaluated by Gaussian 16; energies and
+gradients are read back from the Gaussian output. The NEB trajectory is
+written to `neb_*.xyz`, and the optimized path is summarized in `nebinfo`.
+The linear interpolation (LI-NEB) variant uses the same binary with the input
+file shown in `examples/lineb/input`.
 
 ## Examples
 
@@ -238,10 +281,13 @@ If you use NM-NEB in your work, please cite:
 ## License
 
 The NM-NEB source code in this repository is distributed under the MIT
-License (see [LICENSE](LICENSE)). DL-FIND, obtained via the
+License (see [LICENSE](LICENSE)), except for the DL-FIND-derived parts.
+DL-FIND, obtained via the
 [libdlfind](https://github.com/digital-chemistry-laboratory/libdlfind)
 submodule, is distributed under the GPL-3.0 / LGPL-3.0 licenses of its own
-repository. Note the interface routines in `src/nmneb/func.f90` and
+repository. The callback routines in `src/nmneb/func.f90` and
 `src/nmneb/fortran_dl_find.f90` were adapted from the DL-FIND crystal
-interface; if you redistribute these files together with DL-FIND, the
-GPL-3.0 terms of DL-FIND apply to the combined work.
+interface, and `build.sh` / `build.cmd` compile the DL-FIND kernel directly
+into the `nmneb` binary. When you build and redistribute that combined
+binary, the GPL-3.0 / LGPL-3.0 terms of DL-FIND apply to the combined work;
+the complete source needed to rebuild it is this repository.

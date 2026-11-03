@@ -3,6 +3,20 @@
 *.mod
 a.out
 
+# Built executables (from build.sh / build.cmd)
+src/nmneb/nmneb
+src/nmneb/nmneb.exe
+src/mode-align/mode-align
+src/mode-align/mode-align.exe
+src/mode-displacement/mode-R
+src/mode-displacement/mode-R.exe
+src/mode-displacement/mode-P
+src/mode-displacement/mode-P.exe
+src/z-interplot/z-interplot
+src/z-interplot/z-interplot.exe
+src/z-interplot/ZtoC/zmat_to_cart
+src/z-interplot/ZtoC/zmat_to_cart.exe
+
 # Gaussian 16 input/output files
 *.log
 *.fchk

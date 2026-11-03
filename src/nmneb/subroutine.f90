@@ -10,6 +10,7 @@ subroutine single_point(nvar,energy,gradient,nstate)
         real(rk),dimension(:,:),allocatable :: Coordinates
         character(len=2),dimension(:),allocatable :: Symbol
         character(len=79) :: Keyword
+        character(len=512) :: gauss_exe, formchk_exe, cmdline
         real(rk),parameter :: AtoB=5.2917720810086E-01
 
         if(nstate/=1)return
@@ -56,8 +57,22 @@ subroutine single_point(nvar,energy,gradient,nstate)
         write(62,*)
         close(62)
         
-        call system("g16 single_point.gjf")
-        call system("formchk single_point.chk")
+        ! Locate the Gaussian executables: environment variables GAUSS_EXE and
+        ! FORMCHK_EXE take precedence; otherwise "g16"/"formchk" are used from PATH.
+        call get_environment_variable("GAUSS_EXE", gauss_exe)
+        if (len_trim(gauss_exe) == 0) gauss_exe = "g16"
+        call get_environment_variable("FORMCHK_EXE", formchk_exe)
+        if (len_trim(formchk_exe) == 0) formchk_exe = "formchk"
+        write(6,"(a,a)") " Gaussian executable : ", trim(gauss_exe)
+        write(6,"(a,a)") " formchk executable : ", trim(formchk_exe)
+
+        ! Quote the executable if its path contains spaces (e.g. Windows "Program Files")
+        cmdline = trim(gauss_exe)
+        if (index(cmdline," ") > 0) cmdline = '"' // trim(cmdline) // '"'
+        call system(trim(cmdline) // " single_point.gjf")
+        cmdline = trim(formchk_exe)
+        if (index(cmdline," ") > 0) cmdline = '"' // trim(cmdline) // '"'
+        call system(trim(cmdline) // " single_point.chk")
 
 
         open(72,file="single_point.fchk")
